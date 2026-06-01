@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERC 2026 Rankings</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app-shell">
+
+  <div id="toolbar">
+    <button class="btn btn-primary" id="btn-new-ranking">New ranking</button>
+    <button class="btn rank-only" id="btn-filter-videos" style="display:none">Show all</button>
+    <select class="rank-only" id="sort-select" style="display:none">
+      <option value="default">Sort: Default</option>
+      <option value="alpha">A–Z</option>
+      <option value="country">Country</option>
+      <option value="best">Best Finish</option>
+    </select>
+    <span class="title" id="rank-title-display"></span>
+    <span id="header-mode-badge"></span>
+  </div>
+
+  <!-- Home -->
+  <div id="view-home" class="view active">
+    <div style="padding:20px">
+      <h2>ERC 2026 Team Rankings</h2>
+      <p class="home-desc">
+        Build a tier list or power ranking of all 123 teams at the
+        <strong>European Rover Challenge 2026</strong>.
+        Rankings can be exported as a PNG image.
+      </p>
+
+      <div class="mode-grid">
+        <button class="mode-btn" data-mode="tier">
+          <span class="mode-icon">🏆</span>
+          <strong>Tier List</strong>
+          <small>S / A / B / C / D rows</small>
+        </button>
+        <button class="mode-btn" data-mode="pr">
+          <span class="mode-icon">📊</span>
+          <strong>Power Ranking</strong>
+          <small>Ordered 1st, 2nd, 3rd…</small>
+        </button>
+      </div>
+
+      <input id="ranking-title" type="text" placeholder="Give your ranking a title (optional)">
+
+      <label class="filter-toggle">
+        <input type="checkbox" id="filter-videos-home" checked>
+        Only show teams with submission videos
+      </label>
+
+      <button class="btn btn-primary" id="btn-start">Start ranking »</button>
+    </div>
+  </div>
+
+  <!-- Rank -->
+  <div id="view-rank" class="view">
+    <div id="rank-content" style="padding:8px 10px"></div>
+    <div id="share-bar">
+      <button class="btn btn-primary" id="btn-export-png">⬇ Export PNG</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Video Panel -->
+<div id="panel-overlay"></div>
+<aside id="video-panel">
+  <div class="panel-titlebar">
+    <span id="panel-name">Team details</span>
+    <div class="panel-close" id="btn-panel-close">✕</div>
+  </div>
+  <div class="panel-logo-bar">
+    <img id="panel-logo" src="logos/placeholder.svg" alt="">
+    <div class="info">
+      <h3 id="panel-name2"></h3>
+      <p id="panel-sub"></p>
+    </div>
+  </div>
+  <div class="panel-body">
+    <table class="panel-meta">
+      <tr><td class="label">University</td><td id="panel-university"></td></tr>
+      <tr><td class="label">Country</td><td id="panel-country"></td></tr>
+      <tr><td class="label">Best finish</td><td id="panel-best"></td></tr>
+    </table>
+    <div id="panel-embed"></div>
+    <div id="panel-no-video" class="no-video-msg" style="display:none">No submission video yet.</div>
+    <div class="panel-links">
+      <a id="panel-erc-link" class="panel-link" href="#" target="_blank" rel="noopener">🔗 View ERC team page</a>
+    </div>
+  </div>
+</aside>
+
+<div id="toast"></div>
+<script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

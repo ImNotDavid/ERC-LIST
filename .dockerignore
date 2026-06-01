@@ -1,0 +1,6 @@
+.venv
+.git
+.claude
+scripts
+*.xlsx
+update_videos.py
