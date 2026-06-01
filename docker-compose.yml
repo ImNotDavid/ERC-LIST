@@ -4,3 +4,10 @@ services:
     ports:
       - "80:80"
     restart: unless-stopped
+    networks:
+      - shared-tunnel
+
+networks:
+  shared-tunnel:
+    external: true
+    name: shared-tunnel
