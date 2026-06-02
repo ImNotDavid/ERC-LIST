@@ -103,7 +103,7 @@ body {
 .tier-list td { border: 1px solid #bbb; vertical-align: top; }
 
 .tier-label {
-  width: 48px; text-align: center;
+  width: 110px; text-align: center;
   font-size: 14px; font-weight: bold;
   color: #fff; padding: 0;
   user-select: none; vertical-align: middle;
@@ -111,12 +111,12 @@ body {
 }
 .tier-label-inner {
   display: block;
-  padding: 6px 4px;
+  padding: 6px 4px 4px;
   cursor: pointer;
   min-height: 36px;
-  line-height: 1.2;
-  word-break: break-all;
-  font-size: 13px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  font-size: 12px;
 }
 .tier-label-inner:focus {
   outline: 2px solid #fff;
@@ -133,6 +133,56 @@ body {
   font-family: inherit;
 }
 .tier-label:hover .tier-remove { display: block; }
+
+.tier-color-btn {
+  display: none;
+  width: 100%;
+  padding: 3px 0;
+  border: none;
+  border-top: 1px solid rgba(255,255,255,.2);
+  cursor: pointer;
+  background: rgba(0,0,0,.18);
+  font-size: 9px;
+  color: rgba(255,255,255,.9);
+  text-align: center;
+  font-family: inherit;
+  user-select: none;
+  letter-spacing: .03em;
+}
+.tier-label:hover .tier-color-btn { display: block; }
+.tier-color-btn:hover { background: rgba(0,0,0,.32); }
+
+/* Colour picker popup */
+.tier-color-popup {
+  position: fixed;
+  z-index: 9999;
+  background: #fff;
+  border: 1px solid #888;
+  padding: 5px;
+  display: none;
+  grid-template-columns: repeat(5, 26px);
+  gap: 3px;
+  box-shadow: 3px 3px 10px rgba(0,0,0,.3);
+}
+.tier-color-popup.open { display: grid; }
+.color-swatch {
+  width: 26px; height: 26px;
+  cursor: pointer;
+  border: 2px solid rgba(0,0,0,.15);
+  padding: 0;
+}
+.color-swatch:hover { border-color: #000; transform: scale(1.1); }
+
+/* Drop position indicator */
+.drop-indicator {
+  width: 3px;
+  min-height: 80px;
+  align-self: stretch;
+  background: #1a6fc4;
+  border-radius: 2px;
+  pointer-events: none;
+  flex-shrink: 0;
+}
 
 .tier-add-btn {
   display: block; width: 100%;

@@ -4,6 +4,13 @@
 
 const STORAGE_KEY  = 'erc2026_ranking';
 const TIER_PALETTE = ['#c00','#d05000','#997700','#007700','#0055bb','#7700aa','#006688','#555','#888','#444'];
+const COLOR_PALETTE = [
+  '#cc0000','#dd4400','#ee8800','#ddbb00','#aacc00',
+  '#22aa00','#009966','#007799','#005599','#0033aa',
+  '#1100cc','#5500aa','#880088','#aa0055','#bb2255',
+  '#cc6644','#ddaa33','#44aa66','#4488cc','#666666',
+];
+let colorPickerTier = null;
 
 // ── State ────────────────────────────────────────────────
 let TEAMS = [];
@@ -38,6 +45,7 @@ function loadState() {
 
 // ── Boot ─────────────────────────────────────────────────
 async function boot() {
+  buildColorPicker();
   const r = await fetch('teams.json');
   TEAMS = await r.json();
   TEAMS.forEach((t, i) => t.id = i);
@@ -240,6 +248,20 @@ function renderTierList(container) {
     });
     labelSpan.addEventListener('mousedown', e => e.stopPropagation());
 
+    const colorBtn = document.createElement('button');
+    colorBtn.className = 'tier-color-btn';
+    colorBtn.title = 'Change colour';
+    colorBtn.textContent = '▾';
+    colorBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const popup = document.getElementById('tier-color-popup');
+      if (colorPickerTier === tier && popup?.classList.contains('open')) {
+        popup.classList.remove('open'); colorPickerTier = null;
+      } else {
+        openColorPicker(tier, colorBtn);
+      }
+    });
+
     const removeBtn = document.createElement('button');
     removeBtn.className = 'tier-remove';
     removeBtn.textContent = '×';
@@ -247,7 +269,7 @@ function renderTierList(container) {
     removeBtn.style.display = state.tierOrder.length > 1 ? '' : 'none';
     removeBtn.addEventListener('click', e => { e.stopPropagation(); removeTier(tier); });
 
-    labelTd.append(labelSpan, removeBtn);
+    labelTd.append(labelSpan, colorBtn, removeBtn);
 
     // Cards cell
     const cardsTd = document.createElement('td');
@@ -343,6 +365,90 @@ function buildPrSlot(pos, id) {
   return slot;
 }
 
+// ── Colour Picker ─────────────────────────────────────────
+function buildColorPicker() {
+  const popup = document.createElement('div');
+  popup.id = 'tier-color-popup';
+  popup.className = 'tier-color-popup';
+  COLOR_PALETTE.forEach(color => {
+    const sw = document.createElement('button');
+    sw.className = 'color-swatch';
+    sw.style.background = color;
+    sw.title = color;
+    sw.addEventListener('click', e => {
+      e.stopPropagation();
+      const tier = colorPickerTier;
+      if (tier) { state.tierColors[tier] = color; saveState(); }
+      popup.classList.remove('open');
+      colorPickerTier = null;
+      if (tier) renderRank();
+    });
+    popup.appendChild(sw);
+  });
+  document.body.appendChild(popup);
+  // Close on any click outside the popup (mousedown fires before click, avoids race)
+  document.addEventListener('mousedown', e => {
+    if (!colorPickerTier) return;
+    if (!popup.contains(e.target)) {
+      popup.classList.remove('open');
+      colorPickerTier = null;
+    }
+  });
+}
+
+function openColorPicker(tier, btn) {
+  const popup = document.getElementById('tier-color-popup');
+  if (!popup) return;
+  colorPickerTier = tier;
+  const rect = btn.getBoundingClientRect();
+  const pw = 5 * 26 + 4 * 3 + 2 * 5; // ≈ 152px
+  let left = rect.right + 6;
+  if (left + pw > window.innerWidth - 8) left = rect.left - pw - 6;
+  popup.style.top  = Math.max(4, rect.top) + 'px';
+  popup.style.left = Math.max(4, left) + 'px';
+  popup.classList.add('open');
+}
+
+// ── Drop Indicator ────────────────────────────────────────
+function showDropIndicator(container, clientX) {
+  removeDropIndicator(container);
+  if (state.sortBy !== 'default') return;
+  const cards = Array.from(container.querySelectorAll('.team-card'))
+    .filter(c => parseInt(c.dataset.id) !== draggingId);
+  const ind = document.createElement('div');
+  ind.className = 'drop-indicator';
+  let placed = false;
+  for (let i = 0; i < cards.length; i++) {
+    const r = cards[i].getBoundingClientRect();
+    if (clientX < r.left + r.width / 2) {
+      container.insertBefore(ind, cards[i]);
+      placed = true; break;
+    }
+  }
+  if (!placed) container.appendChild(ind);
+}
+function removeDropIndicator(container) {
+  container.querySelectorAll('.drop-indicator').forEach(el => el.remove());
+}
+
+// ── Positional Insert ──────────────────────────────────────
+function getCardInsertIndex(container, clientX) {
+  const tier = container.dataset.tier;
+  const tierArray = state.tiers[tier] || [];
+  if (state.sortBy !== 'default') return tierArray.length;
+  const cards = Array.from(container.querySelectorAll('.team-card'))
+    .filter(c => parseInt(c.dataset.id) !== draggingId);
+  for (let i = 0; i < cards.length; i++) {
+    const rect = cards[i].getBoundingClientRect();
+    if (clientX < rect.left + rect.width / 2) {
+      const id = parseInt(cards[i].dataset.id);
+      const arrIdx = tierArray.indexOf(id);
+      return arrIdx >= 0 ? arrIdx : i;
+    }
+  }
+  return tierArray.length;
+}
+
 // ── Drag & Drop ───────────────────────────────────────────
 let draggingId = null;
 
@@ -356,17 +462,28 @@ function onDragEnd(e) {
   e.currentTarget.classList.remove('dragging');
   draggingId = null;
   document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  document.querySelectorAll('.drop-indicator').forEach(el => el.remove());
 }
 
 function setupTierDropZone(el) {
-  el.addEventListener('dragover',  e => { e.preventDefault(); el.classList.add('drag-over'); });
-  el.addEventListener('dragleave', e => { if (!el.contains(e.relatedTarget)) el.classList.remove('drag-over'); });
+  el.addEventListener('dragover', e => {
+    e.preventDefault(); el.classList.add('drag-over');
+    showDropIndicator(el, e.clientX);
+  });
+  el.addEventListener('dragleave', e => {
+    if (!el.contains(e.relatedTarget)) {
+      el.classList.remove('drag-over'); removeDropIndicator(el);
+    }
+  });
   el.addEventListener('drop', e => {
-    e.preventDefault(); el.classList.remove('drag-over');
+    e.preventDefault(); el.classList.remove('drag-over'); removeDropIndicator(el);
     const id = parseInt(e.dataTransfer.getData('text/plain'));
     if (isNaN(id)) return;
+    const tier = el.dataset.tier;
+    const insertIdx = getCardInsertIndex(el, e.clientX);
     removefromAllTiers(id); removeFromRanked(id);
-    state.tiers[el.dataset.tier].push(id);
+    if (!state.tiers[tier]) state.tiers[tier] = [];
+    state.tiers[tier].splice(insertIdx, 0, id);
     saveState(); renderRank();
   });
 }
@@ -425,8 +542,11 @@ function removeFromRanked(id) { state.ranked = state.ranked.filter(x => x !== id
     if (!underEl) { draggingId = null; return; }
     const tierCards = underEl.closest('[data-tier]');
     if (tierCards) {
+      const tier = tierCards.dataset.tier;
+      const insertIdx = getCardInsertIndex(tierCards, t.clientX);
       removefromAllTiers(draggingId); removeFromRanked(draggingId);
-      state.tiers[tierCards.dataset.tier].push(draggingId);
+      if (!state.tiers[tier]) state.tiers[tier] = [];
+      state.tiers[tier].splice(insertIdx, 0, draggingId);
       saveState(); renderRank(); draggingId = null; return;
     }
     if (underEl.closest('#pr-pool')) {
@@ -523,10 +643,14 @@ async function exportPng() {
   });
 
   // Hide unranked pool and UI controls for export
-  const pool    = el.querySelector('.unranked-pool');
-  const addBtn  = el.querySelector('.tier-add-btn');
-  if (pool)   pool.style.display = 'none';
-  if (addBtn) addBtn.style.display = 'none';
+  const pool       = el.querySelector('.unranked-pool');
+  const addBtn     = el.querySelector('.tier-add-btn');
+  const colorBtns  = Array.from(el.querySelectorAll('.tier-color-btn'));
+  const colorPopup = document.getElementById('tier-color-popup');
+  if (pool)       pool.style.display = 'none';
+  if (addBtn)     addBtn.style.display = 'none';
+  colorBtns.forEach(b => b.style.display = 'none');
+  if (colorPopup) { colorPopup.classList.remove('open'); colorPopup.style.visibility = 'hidden'; }
 
   const hdr = document.createElement('div');
   hdr.style.cssText = 'padding:6px 10px;font-weight:bold;font-size:14px;border-bottom:1px solid #bbb;background:#f5f5f5;font-family:Arial,sans-serif;';
@@ -545,8 +669,10 @@ async function exportPng() {
       height: el.scrollHeight, windowWidth: el.scrollWidth, windowHeight: el.scrollHeight,
     });
     hdr.remove(); ftr.remove();
-    if (pool)   pool.style.display = '';
-    if (addBtn) addBtn.style.display = '';
+    if (pool)       pool.style.display = '';
+    if (addBtn)     addBtn.style.display = '';
+    colorBtns.forEach(b => b.style.display = '');
+    if (colorPopup) colorPopup.style.visibility = '';
     renderRank();
     const a = document.createElement('a');
     a.download = (state.title || 'ERC2026').replace(/[^\w\- ]/g, '_') + '.png';
@@ -555,8 +681,10 @@ async function exportPng() {
     showToast('PNG saved!');
   } catch (err) {
     hdr.remove(); ftr.remove();
-    if (pool)   pool.style.display = '';
-    if (addBtn) addBtn.style.display = '';
+    if (pool)       pool.style.display = '';
+    if (addBtn)     addBtn.style.display = '';
+    colorBtns.forEach(b => b.style.display = '');
+    if (colorPopup) colorPopup.style.visibility = '';
     renderRank();
     showToast('Export failed'); console.error(err);
   }
